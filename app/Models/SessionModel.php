@@ -12,10 +12,10 @@ class SessionModel extends Model
     protected $useTimestamps = true;
     protected $db;
 
-    public function __construct()
-    {
-        $this->db = \Config\Database::connect();
-    }
+    // public function __construct()
+    // {
+    //     $this->db = \Config\Database::connect();
+    // }
     
     /**
      * Get the current active academic session

@@ -6,110 +6,79 @@ use CodeIgniter\Model;
 
 class FeesModel extends Model
 {
-    protected $table = 'fee_receipt';
+    protected $table = 'fee_receipt_no';
     protected $primaryKey = 'id';
     protected $allowedFields = [
-        'student_id',
-        'fee_groups_feetype_id',
-        'amount_detail',
-        'amount',
-        'amount_discount',
-        'amount_fine',
-        'description',
-        'date',
-        'payment_mode',
-        'received_by',
-        'created_at',
-        'updated_at'
+        'payment'
     ];
-    
+
     protected $useTimestamps = true;
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
-    
+
     protected $validationRules = [
-        'student_id' => 'required|integer',
-        'fee_groups_feetype_id' => 'required|integer',
-        'amount' => 'required|decimal|greater_than[0]',
-        'date' => 'required|valid_date',
-        'payment_mode' => 'required|in_list[cash,cheque,dd,bank_transfer,card,online]'
+        'payment' => 'required|integer|greater_than[0]'
     ];
-    
+
     protected $validationMessages = [
-        'student_id' => [
-            'required' => 'Student is required',
-            'integer' => 'Invalid student selection'
-        ],
-        'fee_groups_feetype_id' => [
-            'required' => 'Fee type is required',
-            'integer' => 'Invalid fee type selection'
-        ],
-        'amount' => [
-            'required' => 'Amount is required',
-            'decimal' => 'Amount must be a valid number',
-            'greater_than' => 'Amount must be greater than 0'
-        ],
-        'date' => [
-            'required' => 'Payment date is required',
-            'valid_date' => 'Invalid date format'
-        ],
-        'payment_mode' => [
-            'required' => 'Payment mode is required',
-            'in_list' => 'Invalid payment mode'
+        'payment' => [
+            'required' => 'Payment is required',
+            'integer' => 'Payment must be a valid integer',
+            'greater_than' => 'Payment must be greater than 0'
         ]
     ];
-    
+
     /**
      * Get all fee receipts with student and fee type details
      */
     public function getAllFeesWithDetails()
     {
-        return $this->select('fee_receipt.*, 
+        return $this->select('fee_receipt_no.*, 
                             students.firstname, students.lastname, students.admission_no,
                             fee_groups_feetype.amount as fee_amount,
                             feetype.name as fee_type_name,
                             feegroup.name as fee_group_name')
-                    ->join('students', 'fee_receipt.student_id = students.id')
-                    ->join('fee_groups_feetype', 'fee_receipt.fee_groups_feetype_id = fee_groups_feetype.id')
+                    ->join('students', 'fee_receipt_no.student_id = students.id')
+                    ->join('fee_groups_feetype', 'fee_receipt_no.fee_groups_feetype_id = fee_groups_feetype.id')
                     ->join('feetype', 'fee_groups_feetype.feetype_id = feetype.id')
                     ->join('feegroup', 'fee_groups_feetype.fee_groups_id = feegroup.id')
-                    ->orderBy('fee_receipt.date', 'DESC')
+                    ->orderBy('fee_receipt_no.date', 'DESC')
                     ->findAll();
     }
-    
+
     /**
      * Get fee receipts by student ID
      */
     public function getFeesByStudent($studentId)
     {
-        return $this->select('fee_receipt.*, 
+        return $this->select('fee_receipt_no.*, 
                             fee_groups_feetype.amount as fee_amount,
                             feetype.name as fee_type_name,
                             feegroup.name as fee_group_name')
-                    ->join('fee_groups_feetype', 'fee_receipt.fee_groups_feetype_id = fee_groups_feetype.id')
+                    ->join('fee_groups_feetype', 'fee_receipt_no.fee_groups_feetype_id = fee_groups_feetype.id')
                     ->join('feetype', 'fee_groups_feetype.feetype_id = feetype.id')
                     ->join('feegroup', 'fee_groups_feetype.fee_groups_id = feegroup.id')
-                    ->where('fee_receipt.student_id', $studentId)
-                    ->orderBy('fee_receipt.date', 'DESC')
+                    ->where('fee_receipt_no.student_id', $studentId)
+                    ->orderBy('fee_receipt_no.date', 'DESC')
                     ->findAll();
     }
-    
+
     /**
      * Get recent fee payments
      */
     public function getRecentPayments($limit = 10)
     {
-        return $this->select('fee_receipt.*, 
+        return $this->select('fee_receipt_no.*, 
                             students.firstname, students.lastname, students.admission_no,
                             feetype.name as fee_type_name')
-                    ->join('students', 'fee_receipt.student_id = students.id')
-                    ->join('fee_groups_feetype', 'fee_receipt.fee_groups_feetype_id = fee_groups_feetype.id')
+                    ->join('students', 'fee_receipt_no.student_id = students.id')
+                    ->join('fee_groups_feetype', 'fee_receipt_no.fee_groups_feetype_id = fee_groups_feetype.id')
                     ->join('feetype', 'fee_groups_feetype.feetype_id = feetype.id')
-                    ->orderBy('fee_receipt.created_at', 'DESC')
+                    ->orderBy('fee_receipt_no.created_at', 'DESC')
                     ->limit($limit)
                     ->findAll();
     }
-    
+
     /**
      * Get fee collection statistics
      */
@@ -122,10 +91,10 @@ class FeesModel extends Model
             'yearly_collection' => $this->getYearlyCollection(),
             'payment_modes' => $this->getPaymentModeStats()
         ];
-        
+
         return $stats;
     }
-    
+
     /**
      * Get monthly fee collection
      */
@@ -133,37 +102,37 @@ class FeesModel extends Model
     {
         $month = $month ?? date('m');
         $year = $year ?? date('Y');
-        
+
         return $this->selectSum('amount')
                     ->where('MONTH(date)', $month)
                     ->where('YEAR(date)', $year)
                     ->first()['amount'] ?? 0;
     }
-    
+
     /**
      * Get daily fee collection
      */
     public function getDailyCollection($date = null)
     {
         $date = $date ?? date('Y-m-d');
-        
+
         return $this->selectSum('amount')
                     ->where('date', $date)
                     ->first()['amount'] ?? 0;
     }
-    
+
     /**
      * Get yearly fee collection
      */
     public function getYearlyCollection($year = null)
     {
         $year = $year ?? date('Y');
-        
+
         return $this->selectSum('amount')
                     ->where('YEAR(date)', $year)
                     ->first()['amount'] ?? 0;
     }
-    
+
     /**
      * Get payment mode statistics
      */
@@ -174,14 +143,14 @@ class FeesModel extends Model
                     ->orderBy('total_amount', 'DESC')
                     ->findAll();
     }
-    
+
     /**
      * Get fee collection trend (monthly)
      */
     public function getFeeCollectionTrend($year = null)
     {
         $year = $year ?? date('Y');
-        
+
         return $this->select('MONTH(date) as month, MONTHNAME(date) as month_name, 
                             SUM(amount) as total_amount, COUNT(*) as total_receipts')
                     ->where('YEAR(date)', $year)
@@ -189,14 +158,14 @@ class FeesModel extends Model
                     ->orderBy('MONTH(date)', 'ASC')
                     ->findAll();
     }
-    
+
     /**
      * Get fee defaulters
      */
     public function getFeeDefaulters()
     {
         $db = \Config\Database::connect();
-        
+
         // This is a complex query to find students who haven't paid their fees
         // For now, returning a simplified version
         return $db->query("
@@ -210,21 +179,21 @@ class FeesModel extends Model
             JOIN classes c ON ss.class_id = c.id
             JOIN fee_session_groups fsg ON c.id = fsg.class_id
             JOIN fee_groups_feetype fgf ON fsg.fee_groups_id = fgf.fee_groups_id
-            LEFT JOIN fee_receipt fr ON s.id = fr.student_id AND fgf.id = fr.fee_groups_feetype_id
+            LEFT JOIN fee_receipt_no fr ON s.id = fr.student_id AND fgf.id = fr.fee_groups_feetype_id
             WHERE s.is_active = 'yes'
             GROUP BY s.id
             HAVING balance > 0
             ORDER BY balance DESC
         ")->getResultArray();
     }
-    
+
     /**
      * Get student fee summary
      */
     public function getStudentFeeSummary($studentId)
     {
         $db = \Config\Database::connect();
-        
+
         return $db->query("
             SELECT 
                 fgf.id as fee_groups_feetype_id,
@@ -242,13 +211,13 @@ class FeesModel extends Model
             JOIN feegroup fg ON fgf.fee_groups_id = fg.id
             JOIN fee_session_groups fsg ON fg.id = fsg.fee_groups_id
             JOIN student_session ss ON fsg.class_id = ss.class_id
-            LEFT JOIN fee_receipt fr ON ss.student_id = fr.student_id AND fgf.id = fr.fee_groups_feetype_id
+            LEFT JOIN fee_receipt_no fr ON ss.student_id = fr.student_id AND fgf.id = fr.fee_groups_feetype_id
             WHERE ss.student_id = ?
             GROUP BY fgf.id
             ORDER BY ft.name
         ", [$studentId])->getResultArray();
     }
-    
+
     /**
      * Search fee receipts
      */
@@ -270,7 +239,7 @@ class FeesModel extends Model
                     ->orderBy('fee_receipt.date', 'DESC')
                     ->findAll();
     }
-    
+
     /**
      * Get fee receipt with full details
      */
@@ -292,14 +261,14 @@ class FeesModel extends Model
                     ->where('fee_receipt.id', $id)
                     ->first();
     }
-    
+
     /**
      * Get class-wise fee collection
      */
     public function getClassWiseFeeCollection()
     {
         $db = \Config\Database::connect();
-        
+
         return $db->table('fee_receipt fr')
                   ->select('c.class, c.section, 
                            COUNT(*) as total_receipts,
@@ -312,7 +281,7 @@ class FeesModel extends Model
                   ->get()
                   ->getResultArray();
     }
-    
+
     /**
      * Get fee type wise collection
      */
@@ -327,7 +296,7 @@ class FeesModel extends Model
                     ->orderBy('total_collection', 'DESC')
                     ->findAll();
     }
-    
+
     /**
      * Generate receipt number
      */
@@ -335,18 +304,18 @@ class FeesModel extends Model
     {
         $year = date('Y');
         $month = date('m');
-        
+
         $lastReceipt = $this->select('id')
                            ->where('YEAR(created_at)', $year)
                            ->where('MONTH(created_at)', $month)
                            ->orderBy('id', 'DESC')
                            ->first();
-        
+
         $sequence = $lastReceipt ? ($lastReceipt['id'] % 10000) + 1 : 1;
-        
+
         return 'FR' . $year . $month . str_pad($sequence, 4, '0', STR_PAD_LEFT);
     }
-    
+
     /**
      * Get pending fee amount for a student
      */
@@ -354,16 +323,16 @@ class FeesModel extends Model
     {
         $summary = $this->getStudentFeeSummary($studentId);
         $totalPending = 0;
-        
+
         foreach ($summary as $fee) {
             if ($fee['balance'] > 0) {
                 $totalPending += $fee['balance'];
             }
         }
-        
+
         return $totalPending;
     }
-    
+
     /**
      * Check if student has pending fees
      */

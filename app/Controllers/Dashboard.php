@@ -31,14 +31,10 @@ class Dashboard extends BaseController
         $this->feesModel = new FeesModel();
     }
 
-    public function index()
+    private function getDashboardData($isDemo)
     {
-        // Check if in demo mode
-        $isDemo = session()->get('is_demo', false);
-        
         if ($isDemo) {
-            // Provide demo data
-            $data = [
+            return [
                 'title' => 'Dashboard - Smart School (Demo Mode)',
                 'pageTitle' => 'Dashboard Overview',
                 'totalStudents' => 150,
@@ -57,28 +53,35 @@ class Dashboard extends BaseController
                 'feeStats' => $this->getDemoFeeStats(),
                 'isDemo' => true
             ];
-        } else {
-            // Provide real data
-            $data = [
-                'title' => 'Dashboard - Smart School',
-                'pageTitle' => 'Dashboard Overview',
-                'totalStudents' => $this->studentModel->countAll(),
-                'activeStudents' => $this->studentModel->where('is_active', 'yes')->countAllResults(),
-                'inactiveStudents' => $this->studentModel->where('is_active', 'no')->countAllResults(),
-                'totalTeachers' => $this->teacherModel->countAll(),
-                'activeTeachers' => $this->teacherModel->where('is_active', 'yes')->countAllResults(),
-                'totalClasses' => $this->classModel->countAll(),
-                'totalSections' => $this->getSectionCount(),
-                'totalSubjects' => $this->subjectModel->countAll(),
-                'currentSession' => $this->sessionModel->getCurrentSession(),
-                'recentStudents' => $this->studentModel->getRecentStudents(5),
-                'upcomingEvents' => $this->getUpcomingEvents(),
-                'recentActivities' => $this->getRecentActivities(),
-                'monthlyStats' => $this->getMonthlyStats(),
-                'feeStats' => $this->getFeeStats(),
-                'isDemo' => false
-            ];
         }
+
+        return [
+            'title' => 'Dashboard - Smart School',
+            'pageTitle' => 'Dashboard Overview',
+            'totalStudents' => $this->studentModel->countAll(),
+            'activeStudents' => $this->studentModel->where('is_active', 'yes')->countAllResults(),
+            'inactiveStudents' => $this->studentModel->where('is_active', 'no')->countAllResults(),
+            'totalTeachers' => $this->teacherModel->countAll(),
+            'activeTeachers' => $this->teacherModel->where('is_active', 'yes')->countAllResults(),
+            'totalClasses' => $this->classModel->countAll(),
+            'totalSections' => $this->getSectionCount(),
+            'totalSubjects' => $this->subjectModel->countAll(),
+            'currentSession' => $this->sessionModel->getCurrentSession(),
+            'recentStudents' => $this->studentModel->getRecentStudents(5),
+            'upcomingEvents' => $this->getUpcomingEvents(),
+            'recentActivities' => $this->getRecentActivities(),
+            'monthlyStats' => $this->getMonthlyStats(),
+            'feeStats' => $this->getFeeStats(),
+            'isDemo' => false
+        ];
+    }
+
+    public function index()
+    {
+        // Check if in demo mode
+        $isDemo = session()->get('is_demo', false);
+        
+        $data = $this->getDashboardData($isDemo);
 
         return view('dashboard/index', $data);
     }
@@ -306,10 +309,10 @@ class Dashboard extends BaseController
         $db = \Config\Database::connect();
         
         return [
-            'totalCollection' => $db->table('fee_receipt')
-                ->selectSum('amount')
+            'totalCollection' => $db->table('fee_receipt_no')
+                ->select('SUM(amount) as total')
                 ->get()
-                ->getRow()->amount ?? 0,
+                ->getRow(),
             'monthlyCollection' => $this->getMonthlyFeeCollection(),
             'pendingAmount' => $this->getPendingFeeAmount()
         ];
@@ -353,11 +356,11 @@ class Dashboard extends BaseController
         $db = \Config\Database::connect();
         $currentMonth = date('Y-m');
         
-        return $db->table('fee_receipt')
-            ->selectSum('amount')
+        return $db->table('fee_receipt_no')
+            ->select('SUM(amount) as total')
             ->where('DATE_FORMAT(created_at, "%Y-%m")', $currentMonth)
             ->get()
-            ->getRow()->amount ?? 0;
+            ->getRow();
     }
 
     private function getPendingFeeAmount()
