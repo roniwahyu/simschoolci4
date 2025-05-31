@@ -16,4 +16,14 @@ class SessionModel extends Model
     {
         $this->db = \Config\Database::connect();
     }
+    
+    /**
+     * Get the current active academic session
+     * 
+     * @return object|null The current active session or null if none found
+     */
+    public function getCurrentSession()
+    {
+        return $this->where('is_active', 1)->first('object');
+    }
 }
