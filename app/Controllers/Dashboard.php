@@ -219,7 +219,7 @@ class Dashboard extends BaseController
             'hostelStudents' => $this->getHostelStudentCount()
         ];
 
-        return view('dashboard/hostel', $data);
+        return view('hostel/index', $data);
     }
 
     /**
