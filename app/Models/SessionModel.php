@@ -24,6 +24,6 @@ class SessionModel extends Model
      */
     public function getCurrentSession()
     {
-        return $this->where('is_active', 1)->first('object');
+        return $this->where('is_active', 1)->first();
     }
 }
